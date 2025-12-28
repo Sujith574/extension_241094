@@ -3,18 +3,20 @@ from pydantic import BaseModel
 from PIL import Image
 import pytesseract
 import io
+import os
 from openai import OpenAI
 
 # -------------------------------------------------
-# TESSERACT PATH (WINDOWS)
+# TESSERACT PATH (Render/Linux safe)
 # -------------------------------------------------
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# On Render, tesseract is usually available as `tesseract`
+pytesseract.pytesseract.tesseract_cmd = "tesseract"
 
 # -------------------------------------------------
-# OPENAI CLIENT (NEW API)
+# OPENAI CLIENT (READ FROM ENV)
 # -------------------------------------------------
 client = OpenAI(
-    api_key="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"
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 app = FastAPI()
@@ -24,7 +26,7 @@ app = FastAPI()
 # -------------------------------------------------
 ALLOWED_IDS = {
     "6b4590568865aa31c3d16c219bf64a925ef7b67ab3de1afaeb888345d5f25641",
-    # add more machine IDs here
+    # add friend device IDs here
 }
 
 # -------------------------------------------------
@@ -38,7 +40,7 @@ def verify(req: VerifyRequest):
     return {"allowed": req.machine_id in ALLOWED_IDS}
 
 # -------------------------------------------------
-# IMAGE PREPROCESSING (OCR ACCURACY BOOST)
+# IMAGE PREPROCESSING (OCR ACCURACY)
 # -------------------------------------------------
 def preprocess_image(img: Image.Image) -> Image.Image:
     img = img.convert("L")
@@ -46,7 +48,7 @@ def preprocess_image(img: Image.Image) -> Image.Image:
     return img
 
 # -------------------------------------------------
-# OCR CONFIG
+# OCR
 # -------------------------------------------------
 def extract_text(img: Image.Image) -> str:
     return pytesseract.image_to_string(img, config="--oem 3 --psm 6")
@@ -67,7 +69,7 @@ async def analyze(
     img_bytes = await image.read()
     img = Image.open(io.BytesIO(img_bytes))
 
-    # PREPROCESS + OCR
+    # OCR
     img = preprocess_image(img)
     extracted_text = extract_text(img)
 
@@ -75,7 +77,7 @@ async def analyze(
         return {"answer": "No readable text found"}
 
     # -------------------------------------------------
-    # AI PROMPT (STRICT RULES)
+    # AI PROMPT
     # -------------------------------------------------
     prompt = f"""
 Follow these rules STRICTLY:
