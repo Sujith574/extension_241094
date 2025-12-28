@@ -22,14 +22,22 @@ MACHINE_ID = get_machine_id()
 print("DEVICE ID:", MACHINE_ID)
 
 # -------------------------------------------------
-# BACKEND URLS
+# RENDER BACKEND URL
 # -------------------------------------------------
-VERIFY_URL = "http://127.0.0.1:8000/verify"
-AI_URL = "http://127.0.0.1:8000/analyze"
+BASE_URL = "https://lpu-whatsapp-bot.onrender.com"
+VERIFY_URL = f"{BASE_URL}/verify"
+AI_URL = f"{BASE_URL}/analyze"
 
 def verify_machine():
-    r = requests.post(VERIFY_URL, json={"machine_id": MACHINE_ID}, timeout=5)
-    return r.json().get("allowed", False)
+    try:
+        r = requests.post(
+            VERIFY_URL,
+            json={"machine_id": MACHINE_ID},
+            timeout=10
+        )
+        return r.json().get("allowed", False)
+    except Exception:
+        return False
 
 if not verify_machine():
     sys.exit("Machine not authorized")
@@ -58,7 +66,7 @@ def send_to_ai(image_path):
             AI_URL,
             files={"image": img},
             data={"machine_id": MACHINE_ID},
-            timeout=30
+            timeout=60
         )
     return r.json().get("answer", "")
 
@@ -73,8 +81,13 @@ ui_queue = queue.Queue()
 class AnswerOverlay(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.resize(300, 180)
+        self.setWindowFlags(
+            Qt.Tool |
+            Qt.FramelessWindowHint |
+            Qt.WindowStaysOnTopHint
+        )
+
+        self.resize(320, 200)
 
         screen = QApplication.primaryScreen().availableGeometry()
         x = (screen.width() - self.width()) // 2
@@ -82,17 +95,22 @@ class AnswerOverlay(QWidget):
         self.move(x, y)
 
         self.setStyleSheet("""
-            QWidget { background-color: rgba(0,0,0,220); border-radius: 8px; }
+            QWidget {
+                background-color: rgba(0, 0, 0, 220);
+                border-radius: 8px;
+            }
         """)
 
         self.text = QTextEdit(self)
-        self.text.setGeometry(10, 10, 280, 160)
+        self.text.setGeometry(10, 10, 300, 180)
         self.text.setReadOnly(True)
         self.text.setFont(QFont("Segoe UI", 10))
-        self.text.setStyleSheet("color:white; background:transparent;")
+        self.text.setStyleSheet(
+            "color: white; background: transparent;"
+        )
 
 # -------------------------------------------------
-# QT APP START
+# QT APP
 # -------------------------------------------------
 app = QApplication(sys.argv)
 
@@ -103,12 +121,13 @@ visible = False
 last_answer = ""
 
 # -------------------------------------------------
-# QUEUE PROCESSOR (QT THREAD)
+# UI QUEUE PROCESSOR (QT THREAD)
 # -------------------------------------------------
 def process_ui_queue():
     global visible
     while not ui_queue.empty():
         action = ui_queue.get()
+
         if action == "TOGGLE":
             if visible:
                 overlay.hide()
@@ -116,11 +135,10 @@ def process_ui_queue():
                 overlay.text.setText(last_answer or "No answer yet")
                 overlay.show()
                 overlay.raise_()
-                overlay.activateWindow()
             visible = not visible
 
 # -------------------------------------------------
-# HOTKEY CALLBACKS (NON-UI THREAD)
+# HOTKEY CALLBACKS
 # -------------------------------------------------
 def on_screenshot():
     global last_answer
@@ -134,10 +152,10 @@ keyboard.add_hotkey(SCREENSHOT_KEY, on_screenshot)
 keyboard.add_hotkey(TOGGLE_KEY, on_toggle)
 
 # -------------------------------------------------
-# TIMER TO PROCESS QUEUE
+# TIMER
 # -------------------------------------------------
 timer = QTimer()
 timer.timeout.connect(process_ui_queue)
 timer.start(100)
 
-sys.exit(app.exec())
+sys.exit(app.exec()
