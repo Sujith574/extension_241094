@@ -26,6 +26,7 @@ app = FastAPI()
 # -------------------------------------------------
 ALLOWED_IDS = {
     "6b4590568865aa31c3d16c219bf64a925ef7b67ab3de1afaeb888345d5f25641",
+    "7dd44825af48854345b5c2bf1ca3df6ae45c15a9c34f3beb60101af8404404b9",
     # add friend device IDs here
 }
 
@@ -105,3 +106,4 @@ SCREEN TEXT:
 
     except Exception as e:
         return {"answer": f"AI error: {str(e)}"}
+
