@@ -158,4 +158,4 @@ timer = QTimer()
 timer.timeout.connect(process_ui_queue)
 timer.start(100)
 
-sys.exit(app.exec()
+sys.exit(app.exec())
